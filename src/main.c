@@ -24,7 +24,11 @@ int main(int argc, char** argv) {
         printf("part one: %lu\n", day1_part_one(input));
         printf("part two: %lu\n", day1_part_two(input));
     } else if (day == 2) {
-        puts("TODO");
+        struct day2_result result = day2(input);
+        printf("part one: %lu\n", result.part_one);
+        printf("part two: %lu\n", result.part_two);
+    } else {
+        fprintf(stderr, "Day %hhu does not exist or is unimplemented\n", day);
     }
 
     free(input_buf);

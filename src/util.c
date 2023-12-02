@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
+bool is_space(char c) { return c == ' '; }
+
 int read_whole_stdin(char** buf, size_t* len) {
     size_t buf_size = 128;
     *buf = handle_alloc_failure(malloc(buf_size));
@@ -40,6 +42,40 @@ struct string_view chop_until(struct string_view* str, char delim) {
 bool starts_with(struct string_view str, struct string_view prefix) {
     if (prefix.len > str.len) return false;
     return 0 == memcmp(str.ptr, prefix.ptr, prefix.len);
+}
+
+struct string_view drop_prefix(struct string_view str, struct string_view prefix) {
+    if (!starts_with(str, prefix))
+        return str;
+    return (struct string_view) {
+        .ptr = str.ptr + prefix.len,
+        .len = str.len - prefix.len,
+    };
+}
+
+struct string_view string_view_from_cstr(char* str) {
+    return (struct string_view) {
+        .ptr = str,
+        .len = strlen(str),
+    };
+}
+
+struct string_view chop_while(struct string_view* str, bool predicate(char)) {
+    struct string_view orig = *str;
+    while (str->len > 0 && predicate(str->ptr[0])) {
+        str->len--;
+        str->ptr++;
+    }
+    orig.len = str->ptr - orig.ptr;
+    return orig;
+}
+
+bool string_view_eq(struct string_view a, struct string_view b) {
+    return memcmp(a.ptr, b.ptr, a.len > b.len ? b.len : a.len) == 0;
+}
+
+bool string_view_eq_cstring(struct string_view str, char* cstr) {
+    return string_view_eq(str, string_view_from_cstr(cstr));
 }
 
 int fwrite_all(char* buf, size_t len, FILE* file) {
@@ -95,8 +131,10 @@ int parse_##type(char* str, size_t str_len, type##_t* v) { \
     } \
 }
 
-PARSE_TYPE(uint64)
 PARSE_TYPE(uint8)
+PARSE_TYPE(uint16)
+PARSE_TYPE(uint32)
+PARSE_TYPE(uint64)
 
 #define PARSE_SIGNED(type) \
 int parse_##type(char* str, size_t str_len, type##_t* v) { \
@@ -117,4 +155,5 @@ int parse_##type(char* str, size_t str_len, type##_t* v) { \
 }
 
 PARSE_SIGNED(int64)
+
 
