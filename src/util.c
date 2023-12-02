@@ -67,3 +67,54 @@ void* handle_alloc_failure(void* ptr) {
     return ptr;
 }
 
+#define PARSE_TYPE(type) \
+int parse_##type(char* str, size_t str_len, type##_t* v) { \
+    type##_t max = 0; \
+    max = ~max; \
+    *v = 0; \
+    if (str_len == 0) return -1; \
+    for (;;) { \
+        char c = *str; \
+        if (c >= '0' && c <= '9') { \
+            type##_t digit = c - '0'; \
+            if (digit != 0) { \
+                type##_t limit = max - digit + 1; \
+                if (*v >= limit) return -1; /* Would adding this digit overflow v? */ \
+            } \
+            *v += digit; \
+        } else return -1; \
+        str++; \
+        str_len--; \
+        if (str_len == 0) { \
+            return 0; \
+        } \
+        type##_t shifted = *v * 10; \
+        if (shifted / 10 != *v) /* did it overflow? */ \
+            return -1; \
+        *v = shifted; \
+    } \
+}
+
+PARSE_TYPE(uint64)
+PARSE_TYPE(uint8)
+
+#define PARSE_SIGNED(type) \
+int parse_##type(char* str, size_t str_len, type##_t* v) { \
+    if (str_len == 0) return -1; \
+    u##type##_t uv; \
+    type##_t multiplier = 1; \
+    if (*str == '-') { \
+        str++; \
+        str_len--; \
+        multiplier = -1; \
+    } \
+    if (parse_u##type(str, str_len, &uv) < 0) return -1; \
+    if ((uv & ((u##type##_t)1 << (sizeof(u##type##_t) * 8 - 1))) != 0 /* is the first bit a one? */ \
+            && uv != ((u##type##_t)1 << (sizeof(u##type##_t) * 8 - 1))) /* and is it not exactly -type_MIN? (i.e. 128 in case of int8_t) */ \
+        return -1; \
+    *v = uv * multiplier; \
+    return 0; \
+}
+
+PARSE_SIGNED(int64)
+

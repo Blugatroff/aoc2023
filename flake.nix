@@ -12,6 +12,7 @@
         };
         nativeBuildInputs = with pkgs; [ 
           gnumake
+          clang-tools
         ];
         shellHook = '''';
       in {

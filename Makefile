@@ -9,10 +9,6 @@ CFLAGS=-pedantic -Werror
 aoc: $(OBJ)
 	gcc $(CFLAGS) -o $@ $^
 
-.PHONY: run
-run: aoc
-	./aoc
-
 .PHONY: clean
 clean:
 	rm ./src/*.o

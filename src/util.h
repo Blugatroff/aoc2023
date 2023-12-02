@@ -20,3 +20,8 @@ void exit_on_error(int error);
 
 void* handle_alloc_failure(void* ptr);
 
+int parse_uint8(char* str, size_t str_len, uint8_t* v);
+int parse_int8(char* str, size_t str_len, int8_t* v);
+int parse_uint64(char* str, size_t str_len, uint64_t* v);
+int parse_int64(char* str, size_t str_len, int64_t* v);
+
