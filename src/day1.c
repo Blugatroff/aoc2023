@@ -4,7 +4,7 @@
 #include "util.h"
 #include "days.h"
 
-uint64_t day1_part_one(struct string_view input) {
+uint64_t part_one(struct string_view input) {
     uint64_t sum = 0;
     while (input.len > 0) {
         struct string_view line = chop_until(&input, '\n');
@@ -54,7 +54,7 @@ bool try_match(struct string_view str, uint8_t* output) {
     return false;
 }
 
-uint64_t day1_part_two(struct string_view input) {
+uint64_t part_two(struct string_view input) {
     static char* zero_to_nine[] = { "", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" };
     uint64_t sum = 0;
     while (input.len > 0) {
@@ -83,3 +83,11 @@ uint64_t day1_part_two(struct string_view input) {
     }
     return sum;
 }
+
+struct uint64_day_result day1(struct string_view input) {
+    return (struct uint64_day_result) {
+        .part_one = part_one(input),
+        .part_two = part_two(input),
+    };
+}
+

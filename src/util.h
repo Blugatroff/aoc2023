@@ -10,6 +10,8 @@
 #define min(a, b) ((a) < (b) ? (a) : (b));
 
 bool is_space(char c);
+bool is_period(char c);
+bool is_digit(char c);
 
 int read_whole_stdin(char** buf, size_t* len);
 

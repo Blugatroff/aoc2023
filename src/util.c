@@ -1,9 +1,13 @@
-#include "util.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+
+#include "util.h"
 
 bool is_space(char c) { return c == ' '; }
+bool is_period(char c) { return c == '.'; }
+bool is_digit(char c) { return isdigit(c); }
 
 int read_whole_stdin(char** buf, size_t* len) {
     size_t buf_size = 128;

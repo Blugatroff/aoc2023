@@ -21,10 +21,15 @@ int main(int argc, char** argv) {
     char* input_buf = input.ptr;
 
     if (day == 1) {
-        printf("part one: %lu\n", day1_part_one(input));
-        printf("part two: %lu\n", day1_part_two(input));
+        struct uint64_day_result result = day1(input);
+        printf("part one: %lu\n", result.part_one);
+        printf("part two: %lu\n", result.part_two);
     } else if (day == 2) {
-        struct day2_result result = day2(input);
+        struct uint64_day_result result = day2(input);
+        printf("part one: %lu\n", result.part_one);
+        printf("part two: %lu\n", result.part_two);
+    } else if (day == 3) {
+        struct uint64_day_result result = day3(input);
         printf("part one: %lu\n", result.part_one);
         printf("part two: %lu\n", result.part_two);
     } else {
