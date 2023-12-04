@@ -12,6 +12,7 @@
 bool is_space(char c);
 bool is_period(char c);
 bool is_digit(char c);
+bool is_whitespace(char c);
 
 int read_whole_stdin(char** buf, size_t* len);
 

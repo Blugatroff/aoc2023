@@ -76,8 +76,8 @@ void print_grid(struct tile* board, size_t width, size_t height) {
     }
 }
 
-struct day2_result day3(struct string_view input) {
-    struct day2_result result = {0};
+struct uint64_day_result day3(struct string_view input) {
+    struct uint64_day_result result = {0};
 
     struct num* nums = calloc(sizeof(*nums), input.len);
     size_t n_nums = 0;

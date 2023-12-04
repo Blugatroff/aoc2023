@@ -8,6 +8,7 @@
 bool is_space(char c) { return c == ' '; }
 bool is_period(char c) { return c == '.'; }
 bool is_digit(char c) { return isdigit(c); }
+bool is_whitespace(char c) { return c == ' ' || c == '\n' || c == '\r' || c == '\t'; }
 
 int read_whole_stdin(char** buf, size_t* len) {
     size_t buf_size = 128;

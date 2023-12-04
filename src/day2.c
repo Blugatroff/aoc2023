@@ -71,8 +71,8 @@ bool parse_line(struct string_view line, struct game* game) {
     return false;
 }
 
-struct day2_result day2(struct string_view input) {
-    struct day2_result result = {0};
+struct uint64_day_result day2(struct string_view input) {
+    struct uint64_day_result result = {0};
     while (input.len > 0) {
         struct string_view line = chop_until(&input, '\n');
         if (line.len == 0) continue;
