@@ -40,6 +40,10 @@ int main(int argc, char** argv) {
         struct uint64_day_result result = day5(input);
         printf("part one: %lu\n", result.part_one);
         printf("part two: %lu\n", result.part_two);
+    } else if (day == 6) {
+        struct uint64_day_result result = day6(input);
+        printf("part one: %lu\n", result.part_one);
+        printf("part two: %lu\n", result.part_two);
     } else {
         fprintf(stderr, "Day %hhu does not exist or is unimplemented\n", day);
     }
