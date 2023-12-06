@@ -3,7 +3,7 @@
 #include "util.h"
 #include "days.h"
 
-void failed_to_parse(struct string_view line) {
+static void failed_to_parse(struct string_view line) {
     fputs("Failed to parse line: \"", stderr);
     exit_on_error(fwrite_all(line.ptr, line.len, stderr));
     fputs("\".\n", stderr);

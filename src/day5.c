@@ -29,17 +29,13 @@ struct mapping {
     uint32_t dst_start;
     uint32_t src_start;
     uint32_t length;
-    char* name;
 };
 
-struct mapping* parse_maps(struct string_view* str, char* name, size_t* n_maps) {
+struct mapping* parse_maps(struct string_view* str, size_t* n_maps) {
     size_t maps_cap = n_lines_until_empty_line(*str);
     struct mapping* maps = calloc(maps_cap, sizeof(*maps));
 
-    struct string_view seed_to_soil_line = chop_until(str, '\n');
-    seed_to_soil_line = drop_prefix(seed_to_soil_line, string_view_from_cstr(name));
-    seed_to_soil_line = drop_prefix(seed_to_soil_line, string_view_from_cstr(": "));
-
+    chop_until(str, '\n'); // map header
     while (str->len > 0) {
         struct string_view line = chop_until(str, '\n');
         chop_while(&line, is_whitespace);
@@ -47,7 +43,6 @@ struct mapping* parse_maps(struct string_view* str, char* name, size_t* n_maps) 
         size_t zero = 0;
         
         struct mapping* map = &maps[*n_maps];
-        map->name = name;
         if (parse_uint32s(line, (uint32_t*)map, &zero)) {
             free(maps);
             return NULL;
@@ -57,29 +52,83 @@ struct mapping* parse_maps(struct string_view* str, char* name, size_t* n_maps) 
     return maps;
 }
 
+int32_t use_mapping(int32_t v, struct mapping* maps, size_t n_maps) {
+    for (size_t k = 0; k < n_maps; k++) {
+        struct mapping mapping = maps[k];
+        if (mapping.src_start <= v && v - mapping.src_start < mapping.length) {
+            return v + (mapping.dst_start - mapping.src_start);
+            break;
+        }
+    }
+    return v;
+}
+int32_t use_mapping_reverse(int32_t v, struct mapping* maps, size_t n_maps) {
+    for (size_t k = 0; k < n_maps; k++) {
+        struct mapping mapping = maps[k];
+        if (mapping.dst_start <= v && v - mapping.dst_start < mapping.length) {
+            return v + (mapping.src_start - mapping.dst_start);
+            break;
+        }
+    }
+    return v;
+}
 
 uint32_t lowest_seed_location(uint32_t* seeds, size_t n_seeds, struct mapping** maps, size_t* map_sizes, size_t n_maps) {
     uint32_t lowest_seed_location = UINT32_MAX;
     for (size_t i = 0; i < n_seeds; i++) {
         int32_t seed = seeds[i];
-        for (size_t j = 0; j < n_maps; j++) {
-            struct mapping* map = maps[j];
-            const size_t map_size = map_sizes[j];
-            for (size_t k = 0; k < map_size; k++) {
-                struct mapping mapping = map[k];
-                if (mapping.src_start <= seed && seed - mapping.src_start < mapping.length) {
-                    seed += mapping.dst_start - mapping.src_start;
-                    break;
-                }
-            }
-        }
+        for (size_t j = 0; j < n_maps; j++)
+            seed = use_mapping(seed, maps[j], map_sizes[j]);
         lowest_seed_location = min(lowest_seed_location, seed);
     }
     return lowest_seed_location;
 }
 
-int compare_uint32(const void* a, const void* b) {
-    return *(uint32_t*)a - *(uint32_t*)b;
+size_t max_points_of_interest(struct mapping** maps, size_t* map_sizes, size_t n_maps) {
+    size_t max_points_of_interest = 0;
+    for (size_t i = n_maps; i > 0; i--)
+        max_points_of_interest += max_points_of_interest + map_sizes[i - 1] * 2;
+    return max_points_of_interest;
+}
+
+void determine_points_of_interest(
+        uint32_t* points_of_interest,
+        size_t* n_points_of_interest,
+        uint32_t* seeds,
+        size_t n_seeds,
+        struct mapping** maps,
+        size_t* map_sizes,
+        size_t n_maps
+) {
+    for (size_t i = n_maps; i > 0; i--) {
+        size_t previous_n_points_of_interest = *n_points_of_interest;
+        for (size_t j = 0; j < previous_n_points_of_interest; j++) {
+            uint32_t new = use_mapping_reverse(points_of_interest[j], maps[i - 1], map_sizes[i - 1]);
+            points_of_interest[(*n_points_of_interest)++] = new;
+        }
+        for (size_t j = 0; j < map_sizes[i - 1]; j++) {
+            struct mapping map = maps[i - 1][j];
+            points_of_interest[(*n_points_of_interest)++] = map.src_start;
+            points_of_interest[(*n_points_of_interest)++] = map.src_start + map.length - 1;
+        }
+    }
+
+    size_t filtered_n_points_of_interest = 0;
+    for (size_t i = 0; i < *n_points_of_interest; i++) {
+        uint32_t p = points_of_interest[i];
+        for (size_t j = 0; j + 1 < n_seeds; j += 2) {
+            uint32_t start = seeds[j];
+            uint32_t len = seeds[j + 1];
+            if (p >= start && p < start + len)
+                points_of_interest[filtered_n_points_of_interest++] = p;
+        }
+    }
+    *n_points_of_interest = filtered_n_points_of_interest;
+}
+
+static void failed_to_parse() {
+    fputs("Failed to parse first line\n", stderr);
+    exit(1);
 }
 
 struct uint64_day_result day5(struct string_view input) {
@@ -87,61 +136,38 @@ struct uint64_day_result day5(struct string_view input) {
 
     struct string_view first_line = chop_until(&input, '\n');
     if (first_line.len == 0)
-        goto failed_parsing_first_line;
+        failed_to_parse();
 
     first_line = drop_prefix(first_line, string_view_from_cstr("seeds: "));
 
-    uint32_t* seeds = calloc(first_line.len / 2, sizeof(*seeds));
+    uint32_t seeds[first_line.len / 2];
     size_t n_seeds = 0;
 
     if (parse_uint32s(first_line, seeds, &n_seeds))
-        goto failed_parsing_first_line;
+        failed_to_parse();
 
     while (input.len > 0) {
         if (*input.ptr != '\n') break;
         input.ptr++;
         input.len--;
     }
+    const size_t n_maps = 7;
+    struct mapping* maps[n_maps];
+    size_t map_sizes[n_maps];
+    memset(map_sizes, 0, sizeof(*map_sizes) * n_maps);
 
-    size_t n_seed_to_soil_map = 0;
-    struct mapping* seed_to_soil_map = parse_maps(&input, "seed-to-soil", &n_seed_to_soil_map);
-
-    size_t n_soil_to_fertilizer_map = 0;
-    struct mapping* soil_to_fertilizer_map = parse_maps(&input, "soil-to-fertilizer", &n_soil_to_fertilizer_map);
-
-    size_t n_fertilizer_to_water_map = 0;
-    struct mapping* fertilizer_to_water_map = parse_maps(&input, "fertilizer-to-water", &n_fertilizer_to_water_map);
-
-    size_t n_water_to_light_map = 0;
-    struct mapping* water_to_light_map = parse_maps(&input, "water-to-light", &n_water_to_light_map);
-
-    size_t n_light_to_temperature_map = 0;
-    struct mapping* light_to_temperature_map = parse_maps(&input, "light-to-temperature", &n_light_to_temperature_map);
-
-    size_t n_temperature_to_humidity_map = 0;
-    struct mapping* temperature_to_humidity_map = parse_maps(&input, "temperature_to_humidity_maps", &n_temperature_to_humidity_map);
-    
-    size_t n_humidity_to_location_map = 0;
-    struct mapping* humidity_to_location_map = parse_maps(&input, "humidity-to-location", &n_humidity_to_location_map);
-
-    struct mapping* maps[] = { seed_to_soil_map, soil_to_fertilizer_map, fertilizer_to_water_map, water_to_light_map, light_to_temperature_map, temperature_to_humidity_map, humidity_to_location_map };
-    size_t map_sizes[] = { n_seed_to_soil_map, n_soil_to_fertilizer_map, n_fertilizer_to_water_map, n_water_to_light_map, n_light_to_temperature_map, n_temperature_to_humidity_map, n_humidity_to_location_map };
-    const size_t n_maps = sizeof(maps) / sizeof(void*);
+    for (size_t i = 0; i < n_maps; i++)
+        maps[i] = parse_maps(&input, &map_sizes[i]);
 
     result.part_one = lowest_seed_location(seeds, n_seeds, maps, map_sizes, n_maps);
- 
-    free(humidity_to_location_map);
-    free(temperature_to_humidity_map);
-    free(light_to_temperature_map);
-    free(water_to_light_map);
-    free(fertilizer_to_water_map);
-    free(soil_to_fertilizer_map);
-    free(seed_to_soil_map);
-    free(seeds);
-    return result;
+    
+    uint32_t points_of_interest[max_points_of_interest(maps, map_sizes, n_maps)];
+    size_t n_points_of_interest = 0;
+    determine_points_of_interest(points_of_interest, &n_points_of_interest, seeds, n_seeds, maps, map_sizes, n_maps);
+    result.part_two = lowest_seed_location(points_of_interest, n_points_of_interest, maps, map_sizes, n_maps);
 
-failed_parsing_first_line:
-    fputs("Failed to parse first line\n", stderr);
-    exit(1);
+    for (size_t i = 0; i < n_maps; i++)
+        free(maps[i]);
+    return result;
 }
 
