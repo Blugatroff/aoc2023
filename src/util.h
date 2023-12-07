@@ -36,7 +36,7 @@ bool string_view_eq(struct string_view a, struct string_view b);
 
 bool string_view_eq_cstring(struct string_view str, char* cstr);
 
-int fwrite_all(char* buf, size_t len, FILE* file);
+int fwrite_all(const char* buf, size_t len, FILE* file);
 
 void exit_on_error(int error);
 

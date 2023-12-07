@@ -83,7 +83,7 @@ bool string_view_eq_cstring(struct string_view str, char* cstr) {
     return string_view_eq(str, string_view_from_cstr(cstr));
 }
 
-int fwrite_all(char* buf, size_t len, FILE* file) {
+int fwrite_all(const char* buf, size_t len, FILE* file) {
     size_t res;
     while (len > 0 && (res = fwrite(buf, 1, len, file))) {
         buf += res;

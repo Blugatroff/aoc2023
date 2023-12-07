@@ -6,6 +6,8 @@
 #include "util.h"
 #include "days.h"
 
+struct uint64_day_result (*days[])() = { day1, day2, day3, day4, day5, day6, day7 };
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         puts("Usage: ./aoc <day>");
@@ -20,35 +22,22 @@ int main(int argc, char** argv) {
     exit_on_error(read_whole_stdin(&input.ptr, &input.len));
     char* input_buf = input.ptr;
 
-    if (day == 1) {
-        struct uint64_day_result result = day1(input);
-        printf("part one: %lu\n", result.part_one);
-        printf("part two: %lu\n", result.part_two);
-    } else if (day == 2) {
-        struct uint64_day_result result = day2(input);
-        printf("part one: %lu\n", result.part_one);
-        printf("part two: %lu\n", result.part_two);
-    } else if (day == 3) {
-        struct uint64_day_result result = day3(input);
-        printf("part one: %lu\n", result.part_one);
-        printf("part two: %lu\n", result.part_two);
-    } else if (day == 4) {
-        struct uint64_day_result result = day4(input);
-        printf("part one: %lu\n", result.part_one);
-        printf("part two: %lu\n", result.part_two);
-    } else if (day == 5) {
-        struct uint64_day_result result = day5(input);
-        printf("part one: %lu\n", result.part_one);
-        printf("part two: %lu\n", result.part_two);
-    } else if (day == 6) {
-        struct uint64_day_result result = day6(input);
-        printf("part one: %lu\n", result.part_one);
-        printf("part two: %lu\n", result.part_two);
-    } else {
-        fprintf(stderr, "Day %hhu does not exist or is unimplemented\n", day);
-    }
+    const size_t n_days = sizeof(days) / sizeof(*days);
+    if (day > n_days || day == 0)
+        goto unimplemented;
+    struct uint64_day_result (*day_f)() = days[day - 1];
+    if (day_f == NULL)
+        goto unimplemented;
+
+    struct uint64_day_result result = day_f(input);
+    printf("part one: %lu\n", result.part_one);
+    printf("part two: %lu\n", result.part_two);
 
     free(input_buf);
     return 0;
+unimplemented:
+    fprintf(stderr, "Day %hhu does not exist or is unimplemented\n", day);
+    free(input_buf);
+    return 1;
 }
 
