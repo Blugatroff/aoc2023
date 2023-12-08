@@ -18,16 +18,16 @@ int main(int argc, char** argv) {
         fputs("Failed to parse day!\n", stderr);
         return 1;
     }
-    struct string_view input;
-    exit_on_error(read_whole_stdin(&input.ptr, &input.len));
-    char* input_buf = input.ptr;
-
     const size_t n_days = sizeof(days) / sizeof(*days);
     if (day > n_days || day == 0)
         goto unimplemented;
     struct uint64_day_result (*day_f)() = days[day - 1];
     if (day_f == NULL)
         goto unimplemented;
+
+    struct string_view input;
+    exit_on_error(read_whole_stdin(&input.ptr, &input.len));
+    char* input_buf = input.ptr;
 
     struct uint64_day_result result = day_f(input);
     printf("part one: %lu\n", result.part_one);

@@ -1,3 +1,4 @@
 aoc
 src/*.o
 inputs
+sample.txt
