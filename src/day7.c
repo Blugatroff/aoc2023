@@ -16,6 +16,18 @@ int card_index(char card) {
     return -1;
 }
 
+int joker_card_index(char card) {
+    if (card <= '9') return card - '2' + 1;
+    switch (card) {
+        case 'A': return 12;
+        case 'K': return 11;
+        case 'Q': return 10;
+        case 'J': return 0;
+        case 'T': return 9;
+    }
+    return -1;
+}
+
 void fill_distrib(const char hand[5], uint8_t distrib[13]) {
     for (size_t i = 0; i < 5; i++)
         distrib[card_index(hand[i])]++;
@@ -84,21 +96,74 @@ enum hand_type hand_type(const char hand[5]) {
     exit(7);
 }
 
+struct hand_with_bid {
+    char hand[5];
+    uint32_t bid;
+    enum hand_type type;
+};
+
 int compare_hands(const void* va, const void* vb) {
-    const char* a = *(char**)va;
-    const char* b = *(char**)vb;
-    enum hand_type a_ty = hand_type(a);
-    enum hand_type b_ty = hand_type(b);
-    if (a_ty != b_ty) return b_ty - a_ty;
+    const struct hand_with_bid* a = (struct hand_with_bid*)va;
+    const struct hand_with_bid* b = (struct hand_with_bid*)vb;
+    if (a->type != b->type) return b->type - a->type;
     for (size_t i = 0; i < 5; i++)
-        if (a[i] != b[i]) return card_index(a[i]) - card_index(b[i]);
+        if (a->hand[i] != b->hand[i]) return card_index(a->hand[i]) - card_index(b->hand[i]);
     return 0;
 }
 
-struct hand_with_pid {
-    char* hand;
-    uint32_t bid;
-};
+int joker_compare_hands(const void* va, const void* vb) {
+    const struct hand_with_bid* a = (struct hand_with_bid*)va;
+    const struct hand_with_bid* b = (struct hand_with_bid*)vb;
+    if (a->type != b->type) return b->type - a->type;
+    for (size_t i = 0; i < 5; i++)
+        if (a->hand[i] != b->hand[i]) return joker_card_index(a->hand[i]) - joker_card_index(b->hand[i]);
+    return 0;
+}
+
+char cards[] = { 'A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2' };
+
+void go(struct hand_with_bid* hand, size_t n_jokers, struct hand_with_bid* unjokered, size_t* n_unjokered) {
+    if (n_jokers == 0) {
+        struct hand_with_bid* permut_hand = &unjokered[(*n_unjokered)++];
+        permut_hand->bid = hand->bid;
+        memcpy(permut_hand->hand, hand->hand, 5);
+        return;
+    }
+    size_t joker_index = 0;
+    while (hand->hand[joker_index] != 'J') joker_index++;
+    for (size_t replacement_card = 0; replacement_card < sizeof(cards); replacement_card++) {
+        struct hand_with_bid permut_hand = { .bid = hand->bid, .type = hand->type };
+        memcpy(permut_hand.hand, hand->hand, 5);
+        permut_hand.hand[joker_index] = cards[replacement_card];
+        go(&permut_hand, n_jokers - 1, unjokered, n_unjokered);
+    }
+}
+
+enum hand_type best_type_with_jokers(struct hand_with_bid hand) {
+    size_t n_jokers = 0;
+    size_t n_permutations = 1;
+    for (size_t i = 0; i < 5; i++) {
+        if (hand.hand[i] == 'J') {
+            n_jokers++; 
+            n_permutations *= sizeof(cards);
+        }
+    }
+    if (n_jokers == 0) return hand.type;
+    struct hand_with_bid* unjokered = calloc(n_permutations, sizeof(struct hand_with_bid));
+    size_t n_unjokered = 0; 
+    go(&hand, n_jokers, unjokered, &n_unjokered);
+
+    for (size_t i = 0; i < n_unjokered; i++) {
+        unjokered[i].type = hand_type(unjokered[i].hand);
+        memcpy(unjokered[i].hand, hand.hand, 5);
+    }
+
+    qsort(unjokered, n_unjokered, sizeof(*unjokered), compare_hands);
+
+    enum hand_type best_type = unjokered[n_unjokered - 1].type;
+    free(unjokered);
+    return best_type;
+}
 
 struct uint64_day_result day7(struct string_view input) {
     struct uint64_day_result result = {0};
@@ -107,28 +172,33 @@ struct uint64_day_result day7(struct string_view input) {
     for (size_t i = 0; i < input.len; i++)
         n_lines += input.ptr[i] == '\n';
 
-    struct hand_with_pid hands[n_lines];
+    struct hand_with_bid hands[n_lines];
     size_t n_hands = 0;
 
     while (input.len > 0) {
         struct string_view line = chop_until(&input, '\n');
         if (line.len == 0) continue;
-        struct string_view hand = chop_until(&line, ' ');
+        struct string_view hand_str = chop_until(&line, ' ');
         struct string_view bid_str = chop_until(&line, '\n');
         uint32_t bid;
         if (parse_uint32(bid_str.ptr, bid_str.len, &bid))
             goto failed_parsing;
-        assert(hand.len == 5);
-        hands[n_hands++] = ((struct hand_with_pid) {
-            .hand = hand.ptr,
-            .bid = bid,
-        });
+        assert(hand_str.len == 5);
+        struct hand_with_bid* hand = &hands[n_hands++];
+        hand->bid = bid;
+        memcpy(hand->hand, hand_str.ptr, 5);
+        hand->type = hand_type(hand_str.ptr);
     }
 
     qsort(hands, n_hands, sizeof(*hands), compare_hands);
-    for (size_t i = 0; i < n_hands; i++) {
+    for (size_t i = 0; i < n_hands; i++)
         result.part_one += (i + 1) * hands[i].bid;
-    }
+
+    for (size_t i = 0; i < n_hands; i++)
+        hands[i].type = best_type_with_jokers(hands[i]);
+    qsort(hands, n_hands, sizeof(*hands), joker_compare_hands);
+    for (size_t i = 0; i < n_hands; i++)
+        result.part_two += (i + 1) * hands[i].bid;
 
     return result;
 failed_parsing:
