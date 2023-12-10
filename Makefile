@@ -4,10 +4,10 @@ OBJ=$(SRC:.c=.o)
 CFLAGS=-pedantic -Werror
 
 %.o : %.c
-	gcc $(CFLAGS) -c $< -o $@
+	gcc -O3 $(CFLAGS) -c $< -o $@
 
 aoc: $(OBJ)
-	gcc $(CFLAGS) -o $@ $^
+	gcc -O3 $(CFLAGS) -o $@ $^
 
 .PHONY: clean
 clean:

@@ -22,3 +22,5 @@ struct uint64_day_result day7(struct string_view input);
 
 struct uint64_day_result day8(struct string_view input);
 
+struct uint64_day_result day10(struct string_view input);
+

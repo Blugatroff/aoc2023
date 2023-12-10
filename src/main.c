@@ -6,7 +6,7 @@
 #include "util.h"
 #include "days.h"
 
-struct uint64_day_result (*days[])() = { day1, day2, day3, day4, day5, day6, day7, day8 };
+struct uint64_day_result (*days[])() = { day1, day2, day3, day4, day5, day6, day7, day8, NULL, day10 };
 
 int main(int argc, char** argv) {
     if (argc < 2) {
