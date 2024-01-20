@@ -159,6 +159,6 @@ int parse_##type(char* str, size_t str_len, type##_t* v) { \
     return 0; \
 }
 
+PARSE_SIGNED(int32)
 PARSE_SIGNED(int64)
-
 
