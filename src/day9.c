@@ -3,30 +3,19 @@
 #include "util.h"
 #include "days.h"
 
-int32_t extrapolate(int32_t* nums, size_t n_nums) {
+int32_t extrapolate(int32_t* nums, size_t n_nums, bool forwards) {
     bool all_zero = true;
     for (size_t i = 0; all_zero && i < n_nums; i++)
         all_zero &= nums[i] == 0;
     if (all_zero) return 0;
 
-    int32_t last = nums[n_nums - 1];
+    int32_t edge = forwards ? nums[n_nums - 1] : nums[0];
     for (size_t i = 0; i + 1 < n_nums; i++)
         nums[i] = nums[i + 1] - nums[i];
 
-    return last + extrapolate(nums, n_nums - 1);
-}
-
-int32_t extrapolate_backwards(int32_t* nums, size_t n_nums) {
-    bool all_zero = true;
-    for (size_t i = 0; all_zero && i < n_nums; i++)
-        all_zero &= nums[i] == 0;
-    if (all_zero) return 0;
-
-    int32_t first = nums[0];
-    for (size_t i = 0; i + 1 < n_nums; i++)
-        nums[i] = nums[i + 1] - nums[i];
-
-    return first - extrapolate_backwards(nums, n_nums - 1);
+    return forwards
+            ? edge + extrapolate(nums, n_nums - 1, forwards)
+            : edge - extrapolate(nums, n_nums - 1, forwards);
 }
 
 struct uint64_day_result day9(struct string_view input) {
@@ -52,8 +41,8 @@ struct uint64_day_result day9(struct string_view input) {
         int32_t nums_copy[n_nums];
         memcpy(nums_copy, nums, n_nums * sizeof(int32_t));
 
-        result.part_one += extrapolate(nums, n_nums);
-        result.part_two += extrapolate_backwards(nums_copy, n_nums);
+        result.part_one += extrapolate(nums, n_nums, true);
+        result.part_two += extrapolate(nums_copy, n_nums, false);
     }
 
     return result;
